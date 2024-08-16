@@ -273,7 +273,7 @@ transform = transforms.Compose(
 #     root=root, train=False, download=True, transform=transform)
 # num_classes=10
 # init_channels=3
-# task_classes = [(0,2),(1,2),(3,4),(4,),(5,6,7,),(8,9,1)]
+# task_classes = [(0,2),(1,2),(3,4),(4,5),(6,7,),(8,9,)]
 
 
 root = '/data/qyan439/DataSet/CIFAR100'
@@ -284,6 +284,7 @@ test_dataset = datasets.CIFAR100(
 num_classes=100
 init_channels=3
 task_classes = [list(range(i*10, i*10+10)) for i in range(0, 10)]
+#task_classes = [list(range(i*2, i*2+2)) for i in range(0, 50)]
 
 # root = '/data/qyan439/DataSet/'
 # train_dataset = datasets.MNIST(
@@ -292,7 +293,7 @@ task_classes = [list(range(i*10, i*10+10)) for i in range(0, 10)]
 #     root=root, train=False, download=True, transform=transform)
 # num_classes=10
 # init_channels=1
-# task_classes = [(0,2),(1,2),(3,4),(4,),(5,6,7,),(8,9,1)]
+# task_classes = [(0,2),(1,2),(3,4),(4,5),(6,7,),(8,9,)]
 
 
 batch_size = 128
@@ -507,10 +508,10 @@ for tid, train_loader in tasks_train_loader.items():
 print("All tasks finished.")
 
 
-path = os.path.join(OUT_DIR, 'Task_Epoch_Loss.png')
-plot_loss(train_losses, path)
+#path = os.path.join(OUT_DIR, 'Task_Epoch_Loss.png')
+#plot_loss(train_losses, path)
 
 
-path = os.path.join(OUT_DIR, 'Reuse_Block_Map.png')
-array = np.loadtxt(os.path.join(OUT_DIR, 'Task_Block_Map.txt'), dtype=np.uint8)
-plot_heat(array, path)
+#path = os.path.join(OUT_DIR, 'Reuse_Block_Map.png')
+#array = np.loadtxt(os.path.join(OUT_DIR, 'Task_Block_Map.txt'), dtype=np.uint8)
+#plot_heat(array, path)
