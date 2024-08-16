@@ -1,4 +1,4 @@
-# 定义基本的残差块
+# define the basic residual blocks
 import numpy as np
 import torch
 import torch.nn as nn
@@ -37,7 +37,7 @@ class BasicBlock(nn.Module):
         return out
 
 
-# 定义可复用的残差块层
+# Define reusable residual block layers
 class TaskNet(nn.Module):
     def __init__(self, fb, layers, lb):
         super(TaskNet, self).__init__()
@@ -82,7 +82,7 @@ class MNN(nn.Module):
         strides = [stride] + [1] * (num_blocks - 1)
         layers = []
         for stride in strides:
-            # 获取可以重用的模块
+            # Obtain reusable modules
             if b := self.get_reusable_blocks():
                 b.parameters().require_grad_(False)
                 layers.append(b)
@@ -114,7 +114,7 @@ class MNN(nn.Module):
         return TaskNet(fl[0], nn.Sequential(*layers), fl[-1])
 
     def set_task(self, task_id):
-        # 根据任务ID设置网络
+        # Set the network according to the task ID
         if task_id in self.Task_Block_Map:
 
             self.network = self.get_task_model(task_id)
@@ -134,7 +134,7 @@ class MNN(nn.Module):
                     (feature, outputs.cpu().detach().numpy()), axis=0)
 
     def new_task(self, task_id, sim_matrix):
-        # 创建新的任务
+        # Create a new task
 
         index_max_sim = np.argmax(sim_matrix, axis=0)
         max_sim = np.max(sim_matrix, axis=0)
@@ -144,14 +144,14 @@ class MNN(nn.Module):
         index_blocks = []
         blocks = []
 
-        # 比对每个任务的特征，获取可以重用的模块
+        # Compare the features of each task to obtain reusable modules
 
         for layer, sim_val in enumerate(max_sim):
-            # 如果相似度大于0.8，则重用模块
+            # If the similarity is greater than the threshold, reuse the module
             if sim_val > self.threshold[layer]:
-                # 最相似模块的任务索引
+                # Task index of the most similar module
                 index_task = index_max_sim[layer]
-                # 最相似模块的索引
+                # Index of the most similar module
                 index_block_reusable = self.Task_Block_Map[index_task][layer]
                 b = self.Layer_Block[layer][index_block_reusable]
                 # 模拟_make_layer修改in_channels
@@ -161,11 +161,11 @@ class MNN(nn.Module):
                 index_blocks.append(index_block_reusable)
 
             else:
-                # 如果相似度小于0.8，则创建新的模块
+                # creat new modules if similarity less than thershold
                 new_block = self._make_layer(
                     self.block, self.layer_channels[layer], self.num_blocks[0], stride=2)
 
-                # 添加新模块到当前层的模块列表中
+                # Add a new module to the module list of the current layer
                 self.Layer_Block[layer].append(new_block)
 
                 blocks.append(new_block)
@@ -184,7 +184,7 @@ class MNN(nn.Module):
                                         nn.Flatten(),
                                         nn.Linear(self.layer_channels[-1], self.num_classes))
 
-        # 保存特定于任务id的网络模块
+        # 保存特定于任务id的网络模块 Save task-specific network modules
         self.Task_FL[task_id] = [self.first_block, self.last_block]
 
         del self.network
@@ -216,7 +216,7 @@ class MNN(nn.Module):
         return out
 
 
-# 冻结模型
+# Freeze model
 def freeze_parameters(model: nn.Module):
     for param in model.parameters():
         # print(param)  # 打印第一层的参数
