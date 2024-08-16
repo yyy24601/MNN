@@ -21,7 +21,7 @@ from plot import plot_loss, plot_heat
 process = psutil.Process(os.getpid())
 
 
-# 训练模型
+# Training
 def train_model(model, train_loader, criterion, optimizer, num_epochs):
     model.train()
 
@@ -55,7 +55,7 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs):
     return model
 
 
-# 评估模型
+# testing
 def evaluate_model(model, test_loader):
     model.eval()
 
@@ -76,7 +76,7 @@ def evaluate_model(model, test_loader):
 num = 0
 
 
-# 评估旧任务
+# Evaluate old tasks
 def evaluate_old_task(model: MNN, tasks_test_loader: dict, new_tid):
     accs = []
     global num
@@ -100,12 +100,12 @@ def evaluate_old_task(model: MNN, tasks_test_loader: dict, new_tid):
     return accs
 
 
-# 计算任务相似度
+# Calculate task similarity
 def cal_sim(model, loader):
 
     sim_matrix = []
 
-    # 在新任务中提取特征
+    # Extract features for new tasks
     for tid, task_features in model.Task_Feature.items():
         tm = model.get_task_model(tid)
         features = extract_task_feature(tm, loader)
@@ -172,29 +172,29 @@ def extract_task_feature(model: TaskNet, train_loader):
         # print(f"Layer[{i}] {images.shape=}")
 
         num, h, w = images.shape
-        # 计算要将图片排列为接近方形的网格大小
+        # 计算要将图片排列为接近方形的网格大小 Calculate to arrange the images into a grid size close to a square
         grid_size = int(np.ceil(np.sqrt(num)))
         grid_total = grid_size ** 2
 
-        # 填充空白图片，使得图片总数为 grid_size^2
+        # 填充空白图片，使得图片总数为 grid_size^2  Fill in blank image, Make the total number of pictures is grid_size^2
         if grid_total > len(images):
             padding = np.zeros((grid_total - num, h, w))
             images = np.concatenate((images, padding), axis=0)
 
-        # 重新调整图片数组的形状为 (grid_size, grid_size, h, w)
+        # 重新调整图片数组的形状为 Reshape the image array to (grid_size, grid_size, h, w)
         images = images.reshape(grid_size, grid_size, h, w)
 
-        # 将每一行的图片拼接在一起
+        # 将每一行的图片拼接在一起 Horizontal stacking of each row of images together
         rows = [np.hstack(row) for row in images]
 
-        # 将所有行再垂直拼接起来
+        # 将所有行再垂直拼接起来 Vertically stacked array
         final_image = np.vstack(rows)
         # print(f"{final_image=}")
 
-        # 去除异常值
+        # Remove the abnormal value
         array = remove_outliers_zscore(final_image.flatten(), threshold=3)
 
-        # 归一化到[0, 1]范围
+        # 归一化到[0, 1]范围  Normalize to the range of [0,1]
         array = (final_image - array.min()) / (array.max() - array.min())
         # print(array[:5, :5])
         array = array * 255
@@ -205,10 +205,10 @@ def extract_task_feature(model: TaskNet, train_loader):
 
 
 def remove_outliers_zscore(data, threshold=3):
-    # 计算Z-score
+    # calculate Z-score
     z_scores = stats.zscore(data)
 
-    # 过滤掉Z-score绝对值大于阈值的数据点
+    # Abnormal value detection （Filter the data point of the Z-SCORE absolute value greater than the threshold）
     filtered_data = [x for x, z in zip(
         data, z_scores) if np.abs(z) < threshold]
 
@@ -225,10 +225,10 @@ def compare_features(features1, features2):
  
 
 def consine_similarity(features1, features2):
-    # 将高维数组展平成一维向量
+    # Flatten high-dimensional arrays into one-dimensional vectors
     v1 = features1.flatten()
     v2 = features2.flatten()
-    # # 计算向量的点积
+    # # Calculate the dot product of vectors
     # dot_product = np.dot(v1, v2)
     # # 计算向量的范数
     # norm_v1 = np.linalg.norm(v1)
@@ -242,7 +242,7 @@ def consine_similarity(features1, features2):
     similarity = cos(torch.Tensor(v1), torch.Tensor(v2))
     return similarity
 
-
+#define evaluation metric: backward transfer BWT
 def cal_BWT(task_accs: list, tid):
     a = []
     for accs in task_accs.values():
@@ -250,7 +250,7 @@ def cal_BWT(task_accs: list, tid):
     a = np.array(task_accs[tid])-np.array(a)
     return np.mean(a[:-1])
 
-
+#define evaluation metric: forgetting measure FM
 def cal_FM(task_accs: list, tid):
     max_len = np.max([len(accs) for accs in task_accs.values()])
     a = [accs + [0]*(max_len-len(accs)) for accs in task_accs.values()]
@@ -262,7 +262,7 @@ def cal_FM(task_accs: list, tid):
     return np.mean(x-y)
 
 
-# 加载数据集
+# Load dataset
 transform = transforms.Compose(
     [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
 
@@ -344,7 +344,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # device = torch.device("cpu")
 print("Using device:", device)
 
-# 初始化模型、损失函数和优化器
+# Initialize the model, loss function, and optimizer
 layer_channels = [64, 128, 256, 512]
 threshold = [0.8, 0.90, 0.95, 0.99]
 model = MNN(BasicBlock, [2, 2, 2, 2], layer_channels,
@@ -354,7 +354,7 @@ model = MNN(BasicBlock, [2, 2, 2, 2], layer_channels,
 
 
 criterion = nn.CrossEntropyLoss()
-learn_rate = 0.001
+learn_rate = 0.01
 
 task_accs = {}
 
@@ -378,12 +378,12 @@ num_epochs = 10
 
 print("\nStart !\n")
 
-# 训练和评估模型
+# Training and evaluation model
 for tid, train_loader in tasks_train_loader.items():
 
     sim_matrix = cal_sim(model, train_loader)
     print(f"sim_matrix: {sim_matrix.shape}\n{np.round(sim_matrix, 5)}\n")
-    # 保存相似度矩阵
+    # Save similarity matrix
 
     np.savetxt(os.path.join(OUT_DIR, "sim_matrix.txt"), sim_matrix, fmt='%.5f')
 
@@ -413,7 +413,7 @@ for tid, train_loader in tasks_train_loader.items():
     path = os.path.join(OUT_DIR,  f"task[{tid}]-layer[3]-p0.txt")
     np.savetxt(path, p0, fmt='%.2f')
 
-    # 提取当前任务特征
+    # Extract current task features
     feats = extract_task_feature(model.network, train_loader)
     model.Task_Feature[tid] = feats
     print(f"Num of feature for Task[{tid}] : {len(model.Task_Feature[tid])}")
@@ -427,12 +427,12 @@ for tid, train_loader in tasks_train_loader.items():
         path = os.path.join(OUT_DIR, f"Task[{tid}]-Layer[{layer}].png")
         image.save(path)
 
-    # 在测试集上评估模型
+    # Evaluate the model on the test set
     # test_loader = tasks_test_dataset[tid]
     # accuracy = evaluate_model(model, test_loader)
     # print(f'Test Accuracy: {accuracy:.2f}%')
 
-    # 评估旧任务
+    # Evaluate old tasks
     accs = evaluate_old_task(model, tasks_test_loader, tid)
     print(f"accs for each task after learning task[{tid}]:", np.round(accs, 2))
     task_accs[tid] = accs
